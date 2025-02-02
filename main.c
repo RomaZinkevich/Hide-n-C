@@ -25,7 +25,7 @@ typedef struct {
     int32_t biXPelsPerMeter;  // Horizontal resolution
     int32_t biYPelsPerMeter;  // Vertical resolution
     uint32_t biClrUsed;       // Number of colors used
-    uint32_t biClrImportant;  // Important colorsg
+    uint32_t biClrImportant;  // Important colors
 } BMPInfoHeader;
 #pragma pack(pop)
 
@@ -38,6 +38,7 @@ typedef struct {
 char *decToBin(int dec);
 int binToDec(char *bin);
 PixelsData imageLoader();
+void createImage(const char *filename, int width, int height, unsigned char *pixelData);
 unsigned char *insertText(PixelsData pixelsData, char *text);
 char **encodeText(char *text);
 
@@ -45,6 +46,7 @@ int main (int argc, char *argv[]) {
     PixelsData pixelsData;
     pixelsData = imageLoader("cat.bmp");
     pixelsData.data = insertText(pixelsData, "Hello World");
+    createImage("new.bmp", pixelsData.width, pixelsData.height, pixelsData.data);
 }
 
 unsigned char *insertText(PixelsData pixelsData, char *text) {
@@ -127,6 +129,65 @@ char **encodeText(char *text) {
         free(binChar);
     }
     return splittedCodes;
+}
+
+void createImage(const char *filename, int width, int height, unsigned char *pixelData) {
+    BMPFileHeader fileHeader;
+    BMPInfoHeader infoHeader;
+
+    int rowSize = (3 * width + 3) & ~3;
+    int pixelArraySize = rowSize * height;
+    int fileSize = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader) + pixelArraySize;
+
+    // Populate file header
+    fileHeader.bfType = 0x4D42; // 'BM'
+    fileHeader.bfSize = fileSize;
+    fileHeader.bfReserved1 = 0;
+    fileHeader.bfReserved2 = 0;
+    fileHeader.bfOffBits = sizeof(BMPFileHeader) + sizeof(BMPInfoHeader);
+
+    // Populate info header
+    infoHeader.biSize = sizeof(BMPInfoHeader);
+    infoHeader.biWidth = width;
+    infoHeader.biHeight = height;
+    infoHeader.biPlanes = 1;
+    infoHeader.biBitCount = 24; // RGB
+    infoHeader.biCompression = 0;
+    infoHeader.biSizeImage = pixelArraySize;
+    infoHeader.biXPelsPerMeter = 2835; // ~72 DPI
+    infoHeader.biYPelsPerMeter = 2835; // ~72 DPI
+    infoHeader.biClrUsed = 0;
+    infoHeader.biClrImportant = 0;
+
+    // Write to file
+    FILE *file = fopen(filename, "wb");
+    if (!file) {
+        perror("Error opening file");
+        return;
+    }
+
+    fwrite(&fileHeader, sizeof(BMPFileHeader), 1, file);
+    fwrite(&infoHeader, sizeof(BMPInfoHeader), 1, file);
+
+    // Write pixel data (with padding)
+    uint8_t padding[3] = {0, 0, 0};
+    for (int i = height - 1; i >= 0; i--) {
+        for (int j = 0; j < width; j++) {
+            unsigned char r = pixelData[(i * width + j) * 3 + 2]; // Red channel
+            unsigned char g = pixelData[(i * width + j) * 3 + 1]; // Green channel
+            unsigned char b = pixelData[(i * width + j) * 3 + 0]; // Blue channel
+
+            fwrite(&r, 1, 1, file);
+            fwrite(&g, 1, 1, file);
+            fwrite(&b, 1, 1, file);
+        }
+
+        // Write padding
+        fwrite(padding, 1, rowSize - (width * 3), file);
+    }
+
+    fclose(file);
+    printf("BMP file created: %s\n", filename);
 }
 
 PixelsData imageLoader(const char *filename) {

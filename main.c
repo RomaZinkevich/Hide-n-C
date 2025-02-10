@@ -41,12 +41,75 @@ PixelsData imageLoader();
 void createImage(const char *filename, int width, int height, unsigned char *pixelData);
 unsigned char *insertText(PixelsData pixelsData, char *text);
 char **encodeText(char *text);
+char *dragText(PixelsData pixelsData);
+int dragMessageLength(PixelsData pixelsData);
 
 int main (int argc, char *argv[]) {
     PixelsData pixelsData;
     pixelsData = imageLoader("cat.bmp");
     pixelsData.data = insertText(pixelsData, "Hello World");
     createImage("new.bmp", pixelsData.width, pixelsData.height, pixelsData.data);
+
+    PixelsData pixelsData2;
+    pixelsData2 = imageLoader("new.bmp");
+    char *text = dragText(pixelsData2);
+}
+
+char *dragText(PixelsData pixelsData) {
+    int messageLength = dragMessageLength(pixelsData);
+    char message[messageLength/3][10];
+    memset(message, '\0', sizeof(message));
+    int index = 0;
+    for (int i = 0; i<pixelsData.height; i++) {
+        for (int j = 3; j<pixelsData.width; j++) {
+            int pixelsIndex = (i * pixelsData.width + j) * 3 - 6;
+            int r = (int)pixelsData.data[pixelsIndex]; // Red channel
+            int g = (int)pixelsData.data[pixelsIndex + 1]; // Green channel
+            int b = (int)pixelsData.data[pixelsIndex + 2]; // Blue channel
+            char *rBin = decToBin(r);
+            char *gBin = decToBin(g);
+            char *bBin = decToBin(b);
+            strncpy(message[index], &rBin[6], 3);
+            strncat(message[index], &gBin[6], 3);
+            strncat(message[index], &bBin[6], 3);
+            message[index][9] = '\0';
+            index++;
+            free(rBin);
+            free(gBin);
+            free(bBin);
+
+            if (index==messageLength/3)
+                break;
+        }
+        if (index==messageLength/3)
+            break;
+    }
+
+    for (int i=0; i<messageLength/3; i++) {
+        int num = binToDec(message[i]);
+        char ch = (char)num;
+        printf("%c", ch);
+    }
+}
+
+int dragMessageLength(PixelsData pixelsData) {
+    char headerCodes[10] = "";
+    int r = (int)pixelsData.data[0]; // Red channel
+    int g = (int)pixelsData.data[1]; // Green channel
+    int b = (int)pixelsData.data[2]; // Blue channel
+    char *rBin = decToBin(r);
+    char *gBin = decToBin(g);
+    char *bBin = decToBin(b);
+    strncpy(headerCodes, &rBin[6], 3);
+    strncat(headerCodes, &gBin[6], 3);
+    strncat(headerCodes, &bBin[6], 3);
+    strncat(headerCodes, "\0", 1);
+
+    free(rBin);
+    free(gBin);
+    free(bBin);
+
+    return binToDec(headerCodes);
 }
 
 unsigned char *insertText(PixelsData pixelsData, char *text) {

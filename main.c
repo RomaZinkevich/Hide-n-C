@@ -44,15 +44,61 @@ char **encodeText(char *text);
 char *dragText(PixelsData pixelsData);
 int dragMessageLength(PixelsData pixelsData);
 
-int main (int argc, char *argv[]) {
-    PixelsData pixelsData;
-    pixelsData = imageLoader("cat.bmp");
-    pixelsData.data = insertText(pixelsData, "Hello World");
-    createImage("new.bmp", pixelsData.width, pixelsData.height, pixelsData.data);
+void clearInputBuffer(){
+    while (getchar() != '\n');
+}
 
-    PixelsData pixelsData2;
-    pixelsData2 = imageLoader("new.bmp");
-    char *text = dragText(pixelsData2);
+int main (int argc, char *argv[]) {
+    char filename[100];
+    char text[100];
+    char newFilename[100];
+    PixelsData pixelsData;
+    printf("Welcome to Hide-n-C");
+    while (1) {
+        int ans;
+        printf("\nEnter the command\n1: Hide text message in an image\n2: Retrieve text message from an image\n0: Quit\n");
+        if (scanf("%d", &ans) != 1) {
+            printf("Invalid input! Please enter a valid command\n");
+        }
+        else {
+            clearInputBuffer();
+            if (ans == 0) {
+                printf("Goodbye!");
+                break;
+            }
+            switch(ans){
+                case 1:
+                    printf("Enter a name of an image (name length 1-100): ");
+                    fgets(filename, sizeof(filename), stdin);
+                    filename[strcspn(filename, "\n")] = '\0';
+                    pixelsData = imageLoader(filename);
+
+                    printf("Enter a message (length 1-100): ");
+                    fgets(text, sizeof(text), stdin);
+                    text[strcspn(text, "\n")] = '\0';
+                    pixelsData.data = insertText(pixelsData, text);
+
+                    printf("Enter a name of the new image (length 1-100): ");
+                    fgets(newFilename, sizeof(newFilename), stdin);
+                    newFilename[strcspn(newFilename, "\n")] = '\0';
+                    createImage(newFilename, pixelsData.width, pixelsData.height, pixelsData.data);
+                    break;
+                case 2:
+                    printf("Enter a filename (name length 1-100): ");
+                    fgets(filename, sizeof(filename), stdin);
+                    filename[strcspn(filename, "\n")] = '\0';
+                    pixelsData = imageLoader(filename);
+
+                    char *text = dragText(pixelsData);
+                    printf("\nMessage retrieved: %s\n", text);
+                    free(text);
+                    break;
+                default:
+                    printf("Invalid input! Please enter a valid command\n");
+                    break;
+            }
+        }
+    }
 }
 
 char *dragText(PixelsData pixelsData) {
@@ -60,6 +106,7 @@ char *dragText(PixelsData pixelsData) {
     char message[messageLength/3][10];
     memset(message, '\0', sizeof(message));
     int index = 0;
+    char *strMessage = malloc((messageLength / 3) + 1);
     for (int i = 0; i<pixelsData.height; i++) {
         for (int j = 3; j<pixelsData.width; j++) {
             int pixelsIndex = (i * pixelsData.width + j) * 3 - 6;
@@ -88,8 +135,10 @@ char *dragText(PixelsData pixelsData) {
     for (int i=0; i<messageLength/3; i++) {
         int num = binToDec(message[i]);
         char ch = (char)num;
-        printf("%c", ch);
+        strMessage[i] = ch;
     }
+    strMessage[messageLength / 3] = '\0';
+    return strMessage;
 }
 
 int dragMessageLength(PixelsData pixelsData) {

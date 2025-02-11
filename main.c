@@ -48,49 +48,92 @@ void clearInputBuffer(){
     while (getchar() != '\n');
 }
 
+int isValidFilename(const char *filename) {
+    if (strlen(filename) < 5) {
+        printf("Error: Filename is too short. It must be at least 5 characters long.\n");
+        return 0;
+    }
+
+    if (strstr(filename, ".png") == filename + strlen(filename) - 4 ||
+        strstr(filename, ".jpg") == filename + strlen(filename) - 4 ||
+        strstr(filename, ".bmp") == filename + strlen(filename) - 4) {
+        return 1;
+    } else {
+        printf("Error: Filename must end with .png, .jpg, or .bmp.\n");
+        return 0;
+    }
+}
+
 int main (int argc, char *argv[]) {
     char filename[100];
     char text[100];
     char newFilename[100];
     PixelsData pixelsData;
-    printf("Welcome to Hide-n-C");
+    printf("Welcome to Hide-n-C! A simple tool for hiding messages in BMP images.\nYou can either hide a message in an image or extract a hidden message from an image.\n");
     while (1) {
         int ans;
-        printf("\nEnter the command\n1: Hide text message in an image\n2: Retrieve text message from an image\n0: Quit\n");
+        printf("\nChoose an action:\n1: Hide text message in an image\n2: Retrieve text message from an image\n0: Quit\n");
         if (scanf("%d", &ans) != 1) {
             printf("Invalid input! Please enter a valid command\n");
         }
         else {
             clearInputBuffer();
             if (ans == 0) {
-                printf("Goodbye!");
+                printf("Exiting Hide-n-C! Goodbye!");
                 break;
             }
             switch(ans){
                 case 1:
-                    printf("Enter a name of an image (name length 1-100): ");
-                    fgets(filename, sizeof(filename), stdin);
+                    printf("Enter the path of the image to hide a message in (length 1-100): ");
+                    if (strlen(fgets(filename, sizeof(filename), stdin)) == 99) {
+                        printf("Error reading input.\n");
+                        clearInputBuffer();
+                        continue;
+                    }
                     filename[strcspn(filename, "\n")] = '\0';
                     pixelsData = imageLoader(filename);
-
-                    printf("Enter a message (length 1-100): ");
-                    fgets(text, sizeof(text), stdin);
+                    if (pixelsData.data == NULL) {
+                        printf("Something went wrong! Try Again!\n");
+                        break;
+                    }
+                    printf("Enter the message to hide (length 1-100): ");
+                    if (strlen(fgets(text, sizeof(text), stdin)) == 99) {
+                        printf("Error reading input.\n");
+                        clearInputBuffer();
+                        continue;
+                    }
                     text[strcspn(text, "\n")] = '\0';
                     pixelsData.data = insertText(pixelsData, text);
 
-                    printf("Enter a name of the new image (length 1-100): ");
-                    fgets(newFilename, sizeof(newFilename), stdin);
+                    printf("Enter the path of the image to hide a message in (length 1-100): ");
+                    if (strlen(fgets(newFilename, sizeof(newFilename), stdin)) == 99) {
+                        printf("Error reading input.\n");
+                        clearInputBuffer();
+                        continue;
+                    }
                     newFilename[strcspn(newFilename, "\n")] = '\0';
+                    if (!isValidFilename(newFilename)) {
+                        printf("Something went wrong! Try Again!\n");
+                        break;
+                    }
                     createImage(newFilename, pixelsData.width, pixelsData.height, pixelsData.data);
                     break;
                 case 2:
-                    printf("Enter a filename (name length 1-100): ");
-                    fgets(filename, sizeof(filename), stdin);
+                    printf("Enter the path of the image to extract the hidden message from: ");
+                    if (strlen(fgets(filename, sizeof(filename), stdin)) == 99) {
+                        printf("Error reading input.\n");
+                        clearInputBuffer();
+                        continue;
+                    }
                     filename[strcspn(filename, "\n")] = '\0';
                     pixelsData = imageLoader(filename);
+                    if (pixelsData.data == NULL) {
+                        printf("Something went wrong! Try Again!\n");
+                        break;
+                    }
 
                     char *text = dragText(pixelsData);
-                    printf("\nMessage retrieved: %s\n", text);
+                    printf("\nThe hidden message is: %s\n", text);
                     free(text);
                     break;
                 default:
@@ -299,18 +342,20 @@ void createImage(const char *filename, int width, int height, unsigned char *pix
     }
 
     fclose(file);
-    printf("BMP file created: %s\n", filename);
+    printf("Image file created: %s\n", filename);
 }
 
 PixelsData imageLoader(const char *filename) {
-    PixelsData data;
+    PixelsData data = {NULL, 0, 0};;
     int x, y, n;
     data.data = stbi_load(filename, &x, &y, &n, 0);
     data.width = x;
     data.height = y;
 
-    if (data.data == NULL) {
-        printf("Failed to load image");
+    if (data.data == NULL || n != 3) {
+        printf("Failed to load image\n");
+        data.data = NULL;
+        return data;
     }
 
     printf("Image loaded: %s\n", filename);

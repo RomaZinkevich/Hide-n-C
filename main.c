@@ -83,7 +83,7 @@ void safeFgets(char *buffer, size_t size) {
 
 int main (int argc, char *argv[]) {
     char filename[100];
-    char text[100];
+    char text[170];
     char newFilename[100];
     PixelsData pixelsData;
     printf("Welcome to Hide-n-C! A simple tool for hiding messages in BMP images.\nYou can either hide a message in an image or extract a hidden message from an image.\n");
@@ -109,9 +109,9 @@ int main (int argc, char *argv[]) {
                     break;
                 }
 
-                printf("Enter the message to hide (length 1-100): ");
+                printf("Enter the message to hide (length 1-170): ");
                 safeFgets(text, sizeof(text));
-                if (strlen(text) <= 0 || strlen(text) >= 100) {
+                if (strlen(text) <= 0 || strlen(text) >= 170) {
                     printf("Invalid message format!\n");
                     break;
                 }

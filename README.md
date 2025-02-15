@@ -33,3 +33,7 @@ This project uses the [stb_image](https://github.com/nothings/stb) library for l
 - `stb_image.h` for reading PNG, JPG, and BMP images.
 
 Make sure to include this header in your project.
+
+## Limitations
+
+- The hidden message can be up to 170 characters long (for now)

@@ -50,7 +50,6 @@ void clearInputBuffer(){
 
 int isValidFilename(const char *filename) {
     if (strlen(filename) < 5) {
-        printf("Error: Filename is too short. It must be at least 5 characters long.\n");
         return 0;
     }
 
@@ -61,6 +60,24 @@ int isValidFilename(const char *filename) {
     } else {
         printf("Error: Filename must end with .png, .jpg, or .bmp.\n");
         return 0;
+    }
+}
+
+void safeFgets(char *buffer, size_t size) {
+    if (fgets(buffer, size, stdin) == NULL) {
+        printf("Error reading input.\n");
+        clearInputBuffer();
+        return;
+    }
+
+    size_t len = strlen(buffer);
+
+    if (len > 0 && buffer[len - 1] != '\n') {
+        printf("Input is too long! Maximum length allowed is %zu characters.\n", size - 1);
+        clearInputBuffer();
+        buffer[0] = '\0';
+    } else {
+        buffer[strcspn(buffer, "\n")] = '\0';
     }
 }
 
@@ -75,71 +92,59 @@ int main (int argc, char *argv[]) {
         printf("\nChoose an action:\n1: Hide text message in an image\n2: Retrieve text message from an image\n0: Quit\n");
         if (scanf("%d", &ans) != 1) {
             printf("Invalid input! Please enter a valid command\n");
-        }
-        else {
             clearInputBuffer();
-            if (ans == 0) {
-                printf("Exiting Hide-n-C! Goodbye!");
+        }
+        clearInputBuffer();
+        if (ans == 0) {
+            printf("Exiting Hide-n-C! Goodbye!");
+            break;
+        }
+        switch(ans) {
+            case 1:
+                printf("Enter the path of the image to hide a message in (length 1-100): ");
+                safeFgets(filename, sizeof(filename));
+                pixelsData = imageLoader(filename);
+                if (pixelsData.data == NULL) {
+                    printf("Something went wrong! Try Again!\n");
+                    break;
+                }
+
+                printf("Enter the message to hide (length 1-100): ");
+                safeFgets(text, sizeof(text));
+                if (strlen(text) <= 0 || strlen(text) >= 100) {
+                    printf("Invalid message format!\n");
+                    break;
+                }
+                printf("%d", strlen(text));
+                pixelsData.data = insertText(pixelsData, text);
+
+                printf("Enter the path of the image to save the new image (length 1-100): ");
+                safeFgets(newFilename, sizeof(newFilename));
+                if (!isValidFilename(newFilename)) {
+                    printf("Invalid filename! Please try again.\n");
+                    break;
+                }
+
+                createImage(newFilename, pixelsData.width, pixelsData.height, pixelsData.data);
                 break;
-            }
-            switch(ans){
-                case 1:
-                    printf("Enter the path of the image to hide a message in (length 1-100): ");
-                    if (strlen(fgets(filename, sizeof(filename), stdin)) == 99) {
-                        printf("Error reading input.\n");
-                        clearInputBuffer();
-                        continue;
-                    }
-                    filename[strcspn(filename, "\n")] = '\0';
-                    pixelsData = imageLoader(filename);
-                    if (pixelsData.data == NULL) {
-                        printf("Something went wrong! Try Again!\n");
-                        break;
-                    }
-                    printf("Enter the message to hide (length 1-100): ");
-                    if (strlen(fgets(text, sizeof(text), stdin)) == 99) {
-                        printf("Error reading input.\n");
-                        clearInputBuffer();
-                        continue;
-                    }
-                    text[strcspn(text, "\n")] = '\0';
-                    pixelsData.data = insertText(pixelsData, text);
 
-                    printf("Enter the path of the image to hide a message in (length 1-100): ");
-                    if (strlen(fgets(newFilename, sizeof(newFilename), stdin)) == 99) {
-                        printf("Error reading input.\n");
-                        clearInputBuffer();
-                        continue;
-                    }
-                    newFilename[strcspn(newFilename, "\n")] = '\0';
-                    if (!isValidFilename(newFilename)) {
-                        printf("Something went wrong! Try Again!\n");
-                        break;
-                    }
-                    createImage(newFilename, pixelsData.width, pixelsData.height, pixelsData.data);
+            case 2:
+                printf("Enter the path of the image to extract the hidden message from: ");
+                safeFgets(filename, sizeof(filename));
+                pixelsData = imageLoader(filename);
+                if (pixelsData.data == NULL) {
+                    printf("Something went wrong! Try Again!\n");
                     break;
-                case 2:
-                    printf("Enter the path of the image to extract the hidden message from: ");
-                    if (strlen(fgets(filename, sizeof(filename), stdin)) == 99) {
-                        printf("Error reading input.\n");
-                        clearInputBuffer();
-                        continue;
-                    }
-                    filename[strcspn(filename, "\n")] = '\0';
-                    pixelsData = imageLoader(filename);
-                    if (pixelsData.data == NULL) {
-                        printf("Something went wrong! Try Again!\n");
-                        break;
-                    }
+                }
 
-                    char *text = dragText(pixelsData);
-                    printf("\nThe hidden message is: %s\n", text);
-                    free(text);
-                    break;
-                default:
-                    printf("Invalid input! Please enter a valid command\n");
-                    break;
-            }
+                char *text = dragText(pixelsData);
+                printf("\nThe hidden message is: %s\n", text);
+                free(text);
+                break;
+
+            default:
+                printf("Invalid input! Please enter a valid command\n");
+                break;
         }
     }
 }
